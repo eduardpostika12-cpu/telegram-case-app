@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Cases</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ffd700, #ffed4a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .balance {
+            font-size: 1.5em;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .cases-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .case-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            border-radius: 20px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .case-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: #ffd700;
+        }
+
+        .case-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .case-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .case-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .case-price {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .opening-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+
+        .case-opening {
+            width: 200px;
+            height: 200px;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #ffd700, #ffed4a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: pulse 1.5s infinite, rotate 2s infinite linear;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .result-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 2px solid;
+            animation: fadeInScale 0.5s ease;
+        }
+
+        .result-card.legendary { border-color: #ff6b35; }
+        .result-card.rare { border-color: #9b59b6; }
+        .result-card.common { border-color: #3498db; }
+
+        .result-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .result-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .result-value {
+            font-size: 2em;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .inventory {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .inventory-title {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .inventory-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+
+        .inventory-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.8em;
+        }
+
+        .sparkles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: sparkle 2s infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">💎 Crystal Cases</h1>
+            <div class="balance">💰 Баланс: <span id="balance">1000</span> монет</div>
+        </div>
+
+        <div class="cases-grid">
+            <div class="case-card" data-case="bronze" data-price="100">
+                <span class="case-icon">📦</span>
+                <div class="case-name">Бронзовый кейс</div>
+                <div class="case-price">100 монет</div>
+                <div class="sparkles"></div>
+            </div>
+            <div class="case-card" data-case="silver" data-price="250">
+                <span class="case-icon">💼</span>
+                <div class="case-name">Серебряный кейс</div>
+                <div class="case-price">250 монет</div>
+                <div class="sparkles"></div>
+            </div>
+            <div class="case-card" data-case="gold" data-price="500">
+                <span class="case-icon">🎁</span>
+                <div class="case-name">Золотой кейс</div>
+                <div class="case-price">500 монет</div>
+                <div class="sparkles"></div>
+            </div>
+            <div class="case-card" data-case="diamond" data-price="1000">
+                <span class="case-icon">💎</span>
+                <div class="case-name">Алмазный кейс</div>
+                <div class="case-price">1000 монет</div>
+                <div class="sparkles"></div>
+            </div>
+        </div>
+
+        <div class="inventory">
+            <div class="inventory-title">📋 Инвентарь</div>
+            <div class="inventory-items" id="inventory"></div>
+        </div>
+    </div>
+
+    <div class="opening-overlay" id="openingOverlay">
+        <div class="case-opening" id="caseOpening">📦</div>
+        <div>Открываем кейс...</div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
+
+        // Игровые данные
+        let gameData = {
+            balance: 1000,
+            inventory: []
+        };
+
+        // Конфигурация кейсов
+        const casesConfig = {
+            bronze: {
+                icon: '📦',
+                items: [
+                    { name: 'Медная монета', icon: '🪙', rarity: 'common', value: 50 },
+                    { name: 'Бронзовый щит', icon: '🛡️', rarity: 'common', value: 75 },
+                    { name: 'Железный меч', icon: '⚔️', rarity: 'rare', value: 150 }
+                ]
+            },
+            silver: {
+                icon: '💼',
+                items: [
+                    { name: 'Серебряная монета', icon: '🥈', rarity: 'common', value: 100 },
+                    { name: 'Магический кристалл', icon: '💜', rarity: 'rare', value: 300 },
+                    { name: 'Редкий самоцвет', icon: '💎', rarity: 'legendary', value: 600 }
+                ]
+            },
+            gold: {
+                icon: '🎁',
+                items: [
+                    { name: 'Золотая монета', icon: '🥇', rarity: 'rare', value: 200 },
+                    { name: 'Волшебный жезл', icon: '🪄', rarity: 'rare', value: 400 },
+                    { name: 'Легендарное оружие', icon: '🗡️', rarity: 'legendary', value: 800 }
+                ]
+            },
+            diamond: {
+                icon: '💎',
+                items: [
+                    { name: 'Алмазная корона', icon: '👑', rarity: 'legendary', value: 500 },
+                    { name: 'Мистический артефакт', icon: '🔮', rarity: 'legendary', value: 1200 },
+                    { name: 'Божественный меч', icon: '⚡', rarity: 'legendary', value: 2000 }
+                ]
+            }
+        };
+
+        // Обновление интерфейса
+        function updateUI() {
+            document.getElementById('balance').textContent = gameData.balance;
+            updateInventory();
+            updateCaseAvailability();
+        }
+
+        function updateInventory() {
+            const inventory = document.getElementById('inventory');
+            if (gameData.inventory.length === 0) {
+                inventory.innerHTML = '<div style="text-align: center; opacity: 0.7;">Инвентарь пуст</div>';
+                return;
+            }
+
+            inventory.innerHTML = gameData.inventory.map(item => 
+                `<div class="inventory-item">
+                    <div>${item.icon}</div>
+                    <div>${item.name}</div>
+                    <div style="color: #ffd700;">${item.value}</div>
+                </div>`
+            ).join('');
+        }
+
+        function updateCaseAvailability() {
+            document.querySelectorAll('.case-card').forEach(card => {
+                const price = parseInt(card.dataset.price);
+                if (gameData.balance < price) {
+                    card.classList.add('disabled');
+                } else {
+                    card.classList.remove('disabled');
+                }
+            });
+        }
+
+        // Функция создания искорок
+        function createSparkles(element) {
+            const sparklesContainer = element.querySelector('.sparkles');
+            sparklesContainer.innerHTML = '';
+            
+            for (let i = 0; i < 8; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+                sparkle.style.left = Math.random() * 100 + '%';
+                sparkle.style.top = Math.random() * 100 + '%';
+                sparkle.style.animationDelay = Math.random() * 2 + 's';
+                sparklesContainer.appendChild(sparkle);
+            }
+        }
+
+        // Инициализация искорок для всех кейсов
+        document.querySelectorAll('.case-card').forEach(createSparkles);
+
+        // Обработка открытия кейсов
+        document.querySelectorAll('.case-card').forEach(card => {
+            card.addEventListener('click', function() {
+                if (this.classList.contains('disabled')) return;
+
+                const caseType = this.dataset.case;
+                const price = parseInt(this.dataset.price);
+                
+                if (gameData.balance >= price) {
+                    openCase(caseType, price);
+                }
+            });
+        });
+
+        function openCase(caseType, price) {
+            // Списываем деньги
+            gameData.balance -= price;
+            
+            // Показываем анимацию открытия
+            const overlay = document.getElementById('openingOverlay');
+            const caseIcon = document.getElementById('caseOpening');
+            caseIcon.textContent = casesConfig[caseType].icon;
+            overlay.style.display = 'flex';
+
+            // Через 3 секунды показываем результат
+            setTimeout(() => {
+                const result = getRandomItem(casesConfig[caseType].items);
+                gameData.inventory.push(result);
+                showResult(result);
+            }, 3000);
+        }
+
+        function getRandomItem(items) {
+            // Весовая система для редкости
+            const weights = {
+                common: 0.6,
+                rare: 0.3,
+                legendary: 0.1
+            };
+
+            const random = Math.random();
+            let cumulativeWeight = 0;
+
+            for (const item of items) {
+                cumulativeWeight += weights[item.rarity];
+                if (random <= cumulativeWeight) {
+                    return { ...item };
+                }
+            }
+
+            return items[0]; // Fallback
+        }
+
+        function showResult(item) {
+            const overlay = document.getElementById('openingOverlay');
+            
+            overlay.innerHTML = `
+                <div class="result-card ${item.rarity}">
+                    <div class="result-icon">${item.icon}</div>
+                    <div class="result-name">${item.name}</div>
+                    <div class="result-value">${item.value} монет</div>
+                    <button class="close-btn" onclick="closeResult()">Забрать награду</button>
+                </div>
+            `;
+
+            // Вибрация (если поддерживается)
+            if (window.Telegram && window.Telegram.WebApp.HapticFeedback) {
+                if (item.rarity === 'legendary') {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+                } else if (item.rarity === 'rare') {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                } else {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                }
+            }
+        }
+
+        function closeResult() {
+            document.getElementById('openingOverlay').style.display = 'none';
+            updateUI();
+        }
+
+        // Инициализация при загрузке
+        updateUI();
+
+        // Дополнительные монеты каждые 30 секунд (для демо)
+        setInterval(() => {
+            gameData.balance += 50;
+            updateUI();
+        }, 30000);
+    </script>
+</body>
+</html>
